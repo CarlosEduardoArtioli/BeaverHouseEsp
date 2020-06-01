@@ -53,7 +53,7 @@
 #endif
 
 // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, or GPIO2/TXD1 of NodeMCU control on-board LED
-#define PIN_LED   13
+#define PIN_LED   25
 
 #include <ESP_WiFiManager.h>              //https://github.com/khoih-prog/ESP_WiFiManager
 
@@ -61,6 +61,8 @@
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
 #include <IOXhop_FirebaseESP32.h>
+
+#include <Servo.h>
 
 char configFileName[] = "/config.json";
 
@@ -89,6 +91,10 @@ String devicestatus = "";                                                     //
 String mac = WiFi.macAddress();
 String userpath = "";
 String devicename = "";
+
+Servo myservo;
+
+int pos = 0;
 
 //callback notifying us of the need to save config
 void saveConfigCallback(void)
@@ -284,6 +290,7 @@ void setup()
   Serial.begin(115200);
   Serial.println("\nStarting AutoConnectWithFSParams");
   pinMode(12, OUTPUT);
+  myservo.attach(13);
 
   loadSPIFFSConfigFile();
 
@@ -410,13 +417,17 @@ void loop()
   if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
     Serial.println("Led Turned ON");
     digitalWrite(12, HIGH);
+    myservo.write(180); 
   }
 
   else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
     Serial.println("Led Turned OFF");
     digitalWrite(12, LOW);
+    myservo.write(0); 
   }
   else {
     digitalWrite(12, LOW);
+    myservo.write(0); 
   }
+  
 }
