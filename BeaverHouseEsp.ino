@@ -93,8 +93,9 @@ String userpath = "";
 String devicename = "";
 
 Servo myservo;
-
 int pos = 0;
+
+#define botao 14
 
 //callback notifying us of the need to save config
 void saveConfigCallback(void)
@@ -291,6 +292,7 @@ void setup()
   Serial.println("\nStarting AutoConnectWithFSParams");
   pinMode(12, OUTPUT);
   myservo.attach(13);
+  pinMode(botao, INPUT);
 
   loadSPIFFSConfigFile();
 
@@ -413,21 +415,36 @@ void loop()
   check_status();
 
   devicestatus = Firebase.getString(userpath + "/status");                     // get led status input from firebase
+  
+  int estado_botao = digitalRead(botao);
+
+  Serial.println(estado_botao);
+  // if condition checks if push button is pressed
+  // if pressed LED will turn on otherwise remain off
+  if ( estado_botao == HIGH && devicestatus == "desligado" )
+  {
+    Firebase.setString(userpath + "/status", "ligado");
+  }
+  else
+  if ( estado_botao == HIGH && devicestatus == "ligado" )
+  {
+    Firebase.setString(userpath + "/status", "desligado");
+  }
 
   if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
     Serial.println("Led Turned ON");
     digitalWrite(12, HIGH);
-    myservo.write(180); 
+    myservo.write(180);
   }
 
   else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
     Serial.println("Led Turned OFF");
     digitalWrite(12, LOW);
-    myservo.write(0); 
+    myservo.write(0);
   }
   else {
     digitalWrite(12, LOW);
-    myservo.write(0); 
+    myservo.write(0);
   }
-  
+
 }
