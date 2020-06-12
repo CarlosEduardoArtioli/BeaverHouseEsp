@@ -104,6 +104,8 @@ String devicestatus = "";                                                     //
 String mac = WiFi.macAddress();
 String userpath = "";
 String devicename = "";
+String deviceicon = "";
+String deviceroom = "";
 
 Servo myservo;
 int pos = 0;
@@ -377,7 +379,7 @@ void setup()
   chipID.toUpperCase();
 
   // SSID and PW for Config Portal
-  AP_SSID = "BeaverHouse" + chipID;
+  AP_SSID = "BeaverHouse" + chipID + devicename;
   AP_PASS = chipID;
 
   // Get Router SSID and PASS from EEPROM, then open Config portal AP named "ESP_XXXXXX_AutoConnectAP" and PW "MyESP_XXXXXX"
@@ -426,11 +428,28 @@ void setup()
 
   userpath.replace(".", ":");
 
-  Firebase.setString(userpath + "/icon", "Lâmpada");
-  Firebase.setString(userpath + "/mac", mac);
-  Firebase.setString(userpath + "/name", device_name);
-  Firebase.setString(userpath + "/room", "Nenhum");
-  Firebase.setString(userpath + "/status", "desligado");
+  
+  devicename = Firebase.getString(userpath + "/name");
+
+  if(devicename != ""){
+      deviceicon = Firebase.getString(userpath + "/icon");
+      devicename = Firebase.getString(userpath + "/name");
+      deviceroom = Firebase.getString(userpath + "/room");
+
+       Firebase.setString(userpath + "/icon", deviceicon);
+       Firebase.setString(userpath + "/mac", mac);
+       Firebase.setString(userpath + "/name", devicename);
+       Firebase.setString(userpath + "/room", deviceroom);
+       Firebase.setString(userpath + "/status", "desligado");
+  }
+  else{
+       Firebase.setString(userpath + "/icon", "Lâmpada");
+       Firebase.setString(userpath + "/mac", mac);
+       Firebase.setString(userpath + "/name", device_name);
+       Firebase.setString(userpath + "/room", "Nenhum");
+       Firebase.setString(userpath + "/status", "desligado");
+  }
+
 
 }
 
