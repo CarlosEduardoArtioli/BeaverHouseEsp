@@ -5,12 +5,12 @@
    ESP_WiFiManager is a library for the ESP8266/ESP32 platform (https://github.com/esp8266/Arduino) to enable easy
    configuration and reconfiguration of WiFi credentials using a Captive Portal.
 
-   Forked from Tzapu https://github.com/tzapu/WiFiManager
+   Modified from Tzapu https://github.com/tzapu/WiFiManager
    and from Ken Taylor https://github.com/kentaylor
 
    Built by Khoi Hoang https://github.com/khoih-prog/ESP_WiFiManager
    Licensed under MIT license
-   Version: 1.0.7
+   Version: 1.0.8
 
    Version Modified By   Date      Comments
    ------- -----------  ---------- -----------
@@ -21,39 +21,55 @@
     1.0.4   K Hoang      07/01/2020 Add RFC952 setHostname feature.
     1.0.5   K Hoang      15/01/2020 Add configurable DNS feature. Thanks to @Amorphous of https://community.blynk.cc
     1.0.6   K Hoang      03/02/2020 Add support for ArduinoJson version 6.0.0+ ( tested with v6.14.1 )
-    1.0.7   K Hoang      13/04/2020 Reduce start time, fix SPIFFS bug in examples, update README.md
+    1.0.7   K Hoang      14/04/2020 Use just-in-time scanWiFiNetworks(). Fix bug relating SPIFFS in examples
+    1.0.8   K Hoang      10/06/2020 Fix STAstaticIP issue. Restructure code. Add LittleFS support for ESP8266 core 2.7.1+
  *****************************************************************************************************************************/
+#if !( defined(ESP8266) ||  defined(ESP32) )
+  #error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
+#endif
 
+#include <FS.h>
+  
 //Ported to ESP32
 #ifdef ESP32
-#include <FS.h>
-#include "SPIFFS.h"
-#include <esp_wifi.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
+  #include "SPIFFS.h"
+  #include <esp_wifi.h>
+  #include <WiFi.h>
+  #include <WiFiClient.h>
+  
+  #define ESP_getChipId()   ((uint32_t)ESP.getEfuseMac())
+  
+  #define LED_BUILTIN       2
+  #define LED_ON            HIGH
+  #define LED_OFF           LOW
 
-#define ESP_getChipId()   ((uint32_t)ESP.getEfuseMac())
-
-#define LED_BUILTIN       13
-#define LED_ON            HIGH
-#define LED_OFF           LOW
+  #define FileFS            SPIFFS
 
 #else
-#include <FS.h>                   //this needs to be first, or it all crashes and burns...
 
-#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-//needed for library
-#include <DNSServer.h>
-#include <ESP8266WebServer.h>
+  #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+  //needed for library
+  #include <DNSServer.h>
+  #include <ESP8266WebServer.h>
+  
+  #define ESP_getChipId()   (ESP.getChipId())
+  
+  #define LED_ON            LOW
+  #define LED_OFF           HIGH
 
-#define ESP_getChipId()   (ESP.getChipId())
+  #define USE_LITTLEFS      true
 
-#define LED_ON      LOW
-#define LED_OFF     HIGH
+  #if USE_LITTLEFS
+    #define FileFS          LittleFS
+  #else
+    #define FileFS          SPIFFS
+  #endif
+
+  #include <LittleFS.h>
 #endif
 
 // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, or GPIO2/TXD1 of NodeMCU control on-board LED
-#define PIN_LED   25
+#define PIN_LED       LED_BUILTIN
 
 #include <ESP_WiFiManager.h>              //https://github.com/khoih-prog/ESP_WiFiManager
 
@@ -81,9 +97,6 @@ String AP_PASS;
 char user_email  [USER_EMAIL_LEN] ;
 char device_name  [DEVICE_NAME_LEN];
 
-//flag for saving data
-bool shouldSaveConfig = false;
-
 #define FIREBASE_HOST "beaver-house.firebaseio.com"                     //Your Firebase Project URL goes here without "http:" and "/"
 #define FIREBASE_AUTH "qRqsm7LqDNxJlv6eaVasEPezYhxdloWzZYCZE46k"                       //Your Firebase Database Secret goes here                               
 
@@ -97,30 +110,35 @@ int pos = 0;
 
 #define botao 14
 
+//flag for saving data
+bool shouldSaveConfig = false;
+
 //callback notifying us of the need to save config
 void saveConfigCallback(void)
 {
+  SPIFFS.begin(true);
   Serial.println("Should save config");
   shouldSaveConfig = true;
 }
 
-bool loadSPIFFSConfigFile(void)
+bool loadFileFSConfigFile(void)
 {
+  SPIFFS.begin(true);
   //clean FS, for testing
-  //SPIFFS.format();
+  //FileFS.format();
 
   //read configuration from FS json
   Serial.println("Mounting FS...");
 
-  if (SPIFFS.begin())
+  if (FileFS.begin())
   {
     Serial.println("Mounted file system");
 
-    if (SPIFFS.exists(configFileName))
+    if (FileFS.exists(configFileName))
     {
       //file exists, reading and loading
       Serial.println("Reading config file");
-      File configFile = SPIFFS.open(configFileName, "r");
+      File configFile = FileFS.open(configFileName, "r");
 
       if (configFile)
       {
@@ -150,10 +168,11 @@ bool loadSPIFFSConfigFile(void)
 
           if (json["user_email"])
             strncpy(user_email, json["user_email"], sizeof(user_email));
+            Serial.println(strncpy(user_email, json["user_email"], sizeof(user_email)));
 
           if (json["device_name"])
             strncpy(device_name, json["device_name"], sizeof(device_name));
-
+            Serial.println(strncpy(device_name, json["device_name"], sizeof(device_name)));
         }
 
         //serializeJson(json, Serial);
@@ -170,10 +189,12 @@ bool loadSPIFFSConfigFile(void)
 
           if (json["user_email"])
             strncpy(user_email, json["user_email"], sizeof(user_email));
+            Serial.println(strncpy(user_email, json["user_email"], sizeof(user_email)));
 
           if (json["device_name"])
             strncpy(device_name, json["device_name"], sizeof(device_name));
-
+            Serial.println(strncpy(device_name, json["device_name"], sizeof(device_name)));
+            
         }
         else
         {
@@ -196,8 +217,9 @@ bool loadSPIFFSConfigFile(void)
   return true;
 }
 
-bool saveSPIFFSConfigFile(void)
+bool saveFileFSConfigFile(void)
 {
+  SPIFFS.begin(true);
   Serial.println("Saving config");
 
 #if (ARDUINOJSON_VERSION_MAJOR >= 6)
@@ -208,9 +230,12 @@ bool saveSPIFFSConfigFile(void)
 #endif
 
   json["user_email"] = user_email;
-  json["device_name"]   = device_name;
+  json["device_name"] = device_name;
 
-  File configFile = SPIFFS.open(configFileName, "w");
+  Serial.println(user_email);
+  Serial.println(device_name);
+
+  File configFile = FileFS.open(configFileName, "w");
 
   if (!configFile)
   {
@@ -238,9 +263,9 @@ void heartBeatPrint(void)
   static int num = 1;
 
   if (WiFi.status() == WL_CONNECTED)
-    Serial.print(".");        // H means connected to WiFi
+    Serial.print(".");        // . means connected to WiFi
   else
-    Serial.print("?");        // F means not connected to WiFi
+    Serial.print("?");        // ? means not connected to WiFi
 
   if (num == 80)
   {
@@ -287,6 +312,7 @@ void check_status()
 
 void setup()
 {
+  SPIFFS.begin(true);
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("\nStarting AutoConnectWithFSParams");
@@ -294,7 +320,7 @@ void setup()
   myservo.attach(13);
   pinMode(botao, INPUT);
 
-  loadSPIFFSConfigFile();
+  loadFileFSConfigFile();
 
   // The extra parameters to be configured (can be either global or just in the setup)
   // After connecting, parameter.getValue() will get you the configured value
@@ -315,7 +341,7 @@ void setup()
   ESP_wifiManager.addParameter(&custom_device_name);
 
   //reset settings - for testing
-  ESP_wifiManager.resetSettings();
+  //ESP_wifiManager.resetSettings();
 
   ESP_wifiManager.setDebugOutput(true);
 
@@ -327,13 +353,10 @@ void setup()
   ESP_wifiManager.setAPStaticIPConfig(IPAddress(192, 168, 100, 1), IPAddress(192, 168, 100, 1), IPAddress(255, 255, 255, 0));
 
   ESP_wifiManager.setMinimumSignalQuality(-1);
-  // Set static IP, Gateway, Subnetmask, DNS1 and DNS2. New in v1.0.5+
-  ESP_wifiManager.setSTAStaticIPConfig(IPAddress(10, 0 , 0, 80), IPAddress(10, 0, 0, 1), IPAddress(255, 255, 255, 0),
-                                       IPAddress(10, 0, 0, 1), IPAddress(8, 8, 8, 8));
 
   // We can't use WiFi.SSID() in ESP32 as it's only valid after connected.
   // SSID and Password stored in ESP32 wifi_ap_record_t and wifi_config_t are also cleared in reboot
-  // Have to create a new function to store in EEPROM/SPIFFS for this purpose
+  // Have to create a new function to store in EEPROM/SPIFFS/LittleFS for this purpose
   Router_SSID = ESP_wifiManager.WiFi_SSID();
   Router_Pass = ESP_wifiManager.WiFi_Pass();
 
@@ -377,19 +400,21 @@ void setup()
   Serial.println("WiFi connected");
 
   //read updated parameters
-  strncpy(user_email,   custom_user_email.getValue(),   sizeof(user_email));
+  strncpy(user_email, custom_user_email.getValue(), sizeof(user_email));
   strncpy(device_name, custom_device_name.getValue(), sizeof(device_name));
-
+  Serial.println(strncpy(user_email, custom_user_email.getValue(), sizeof(user_email)));
+  Serial.println(strncpy(device_name, custom_device_name.getValue(), sizeof(device_name)));
+    
   //save the custom parameters to FS
   if (shouldSaveConfig)
   {
-    saveSPIFFSConfigFile();
+    saveFileFSConfigFile();
   }
 
   Serial.println("local ip");
   Serial.println(WiFi.localIP());
 
-  //Inicia a conexão com o Firebase0
+    //Inicia a conexão com o Firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 
   Serial.println(user_email);
@@ -408,6 +433,7 @@ void setup()
   Firebase.setString(userpath + "/status", "desligado");
 
 }
+
 
 void loop()
 {
@@ -446,5 +472,4 @@ void loop()
     digitalWrite(12, LOW);
     myservo.write(0);
   }
-
 }
