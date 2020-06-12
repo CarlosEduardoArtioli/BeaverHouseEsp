@@ -379,7 +379,7 @@ void setup()
   chipID.toUpperCase();
 
   // SSID and PW for Config Portal
-  AP_SSID = "BeaverHouse" + chipID + devicename;
+  AP_SSID = "BeaverHouse" + chipID + "_" + device_name;
   AP_PASS = chipID;
 
   // Get Router SSID and PASS from EEPROM, then open Config portal AP named "ESP_XXXXXX_AutoConnectAP" and PW "MyESP_XXXXXX"
