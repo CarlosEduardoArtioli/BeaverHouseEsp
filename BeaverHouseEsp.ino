@@ -170,11 +170,9 @@ bool loadFileFSConfigFile(void)
 
           if (json["user_email"])
             strncpy(user_email, json["user_email"], sizeof(user_email));
-            Serial.println(strncpy(user_email, json["user_email"], sizeof(user_email)));
 
           if (json["device_name"])
             strncpy(device_name, json["device_name"], sizeof(device_name));
-            Serial.println(strncpy(device_name, json["device_name"], sizeof(device_name)));
         }
 
         //serializeJson(json, Serial);
@@ -191,11 +189,9 @@ bool loadFileFSConfigFile(void)
 
           if (json["user_email"])
             strncpy(user_email, json["user_email"], sizeof(user_email));
-            Serial.println(strncpy(user_email, json["user_email"], sizeof(user_email)));
 
           if (json["device_name"])
             strncpy(device_name, json["device_name"], sizeof(device_name));
-            Serial.println(strncpy(device_name, json["device_name"], sizeof(device_name)));
             
         }
         else
@@ -233,9 +229,6 @@ bool saveFileFSConfigFile(void)
 
   json["user_email"] = user_email;
   json["device_name"] = device_name;
-
-  Serial.println(user_email);
-  Serial.println(device_name);
 
   File configFile = FileFS.open(configFileName, "w");
 
@@ -418,8 +411,6 @@ void setup()
 
     //Inicia a conexão com o Firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
-
-  Serial.println(user_email);
 
   userpath = "/users/";
   userpath += user_email;
