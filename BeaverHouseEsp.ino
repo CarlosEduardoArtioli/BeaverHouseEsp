@@ -25,47 +25,47 @@
     1.0.8   K Hoang      10/06/2020 Fix STAstaticIP issue. Restructure code. Add LittleFS support for ESP8266 core 2.7.1+
  *****************************************************************************************************************************/
 #if !( defined(ESP8266) ||  defined(ESP32) )
-  #error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
+#error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
 #endif
 
 #include <FS.h>
-  
+
 //Ported to ESP32
 #ifdef ESP32
-  #include "SPIFFS.h"
-  #include <esp_wifi.h>
-  #include <WiFi.h>
-  #include <WiFiClient.h>
-  
-  #define ESP_getChipId()   ((uint32_t)ESP.getEfuseMac())
-  
-  #define LED_BUILTIN       2
-  #define LED_ON            HIGH
-  #define LED_OFF           LOW
+#include "SPIFFS.h"
+#include <esp_wifi.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
 
-  #define FileFS            SPIFFS
+#define ESP_getChipId()   ((uint32_t)ESP.getEfuseMac())
+
+#define LED_BUILTIN       2
+#define LED_ON            HIGH
+#define LED_OFF           LOW
+
+#define FileFS            SPIFFS
 
 #else
 
-  #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
-  //needed for library
-  #include <DNSServer.h>
-  #include <ESP8266WebServer.h>
-  
-  #define ESP_getChipId()   (ESP.getChipId())
-  
-  #define LED_ON            LOW
-  #define LED_OFF           HIGH
+#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
+//needed for library
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
 
-  #define USE_LITTLEFS      true
+#define ESP_getChipId()   (ESP.getChipId())
 
-  #if USE_LITTLEFS
-    #define FileFS          LittleFS
-  #else
-    #define FileFS          SPIFFS
-  #endif
+#define LED_ON            LOW
+#define LED_OFF           HIGH
 
-  #include <LittleFS.h>
+#define USE_LITTLEFS      true
+
+#if USE_LITTLEFS
+#define FileFS          LittleFS
+#else
+#define FileFS          SPIFFS
+#endif
+
+#include <LittleFS.h>
 #endif
 
 // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, or GPIO2/TXD1 of NodeMCU control on-board LED
@@ -79,6 +79,9 @@
 #include <IOXhop_FirebaseESP32.h>
 
 #include <Servo.h>
+
+#include <NTPClient.h> //Biblioteca NTPClient modificada
+#include <WiFiUdp.h> //Socket 
 
 char configFileName[] = "/config.json";
 
@@ -106,10 +109,40 @@ String userpath = "";
 String devicename = "";
 String deviceicon = "";
 String deviceroom = "";
+String devicedate = "";
 
+//Fuso Horário, no caso horário de verão de Brasília
+int timeZone = -3;
+
+//Struct com os dados do dia e hora
+struct Date {
+  int dayOfWeek;
+  int day;
+  int month;
+  int year;
+  int hours;
+  int minutes;
+  int seconds;
+};
+
+//Socket UDP que a lib utiliza para recuperar dados sobre o horário
+WiFiUDP udp;
+
+//Objeto responsável por recuperar dados sobre horário
+NTPClient ntpClient(
+  udp,                    //socket udp
+  "0.br.pool.ntp.org",    //URL do servwer NTP
+  timeZone * 3600,        //Deslocamento do horário em relacão ao GMT 0
+  60000);                 //Intervalo entre verificações online
+
+//Nomes dos dias da semana
+char* dayOfWeekNames[] = {"Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"};
+
+//Servo
 Servo myservo;
 int pos = 0;
 
+//Botão
 #define botao 14
 
 //flag for saving data
@@ -119,7 +152,7 @@ bool shouldSaveConfig = false;
 void saveConfigCallback(void)
 {
   SPIFFS.begin(true);
-  Serial.println("Should save config");
+  Serial.println("Deve salvar a configuração");
   shouldSaveConfig = true;
 }
 
@@ -130,21 +163,21 @@ bool loadFileFSConfigFile(void)
   //FileFS.format();
 
   //read configuration from FS json
-  Serial.println("Mounting FS...");
+  Serial.println("Montando FS...");
 
   if (FileFS.begin())
   {
-    Serial.println("Mounted file system");
+    Serial.println("File system montado");
 
     if (FileFS.exists(configFileName))
     {
       //file exists, reading and loading
-      Serial.println("Reading config file");
+      Serial.println("Lendo arquivo de configuração");
       File configFile = FileFS.open(configFileName, "r");
 
       if (configFile)
       {
-        Serial.print("Opened config file, size = ");
+        Serial.print("Arquivo de configuração aberto, tamanho = ");
         size_t configFileSize = configFile.size();
         Serial.println(configFileSize);
 
@@ -153,7 +186,7 @@ bool loadFileFSConfigFile(void)
 
         configFile.readBytes(buf.get(), configFileSize);
 
-        Serial.print("\nJSON parseObject() result : ");
+        Serial.print("\nJSON parseObject() resultado : ");
 
 #if (ARDUINOJSON_VERSION_MAJOR >= 6)
         DynamicJsonDocument json(1024);
@@ -161,7 +194,7 @@ bool loadFileFSConfigFile(void)
 
         if ( deserializeError )
         {
-          Serial.println("failed");
+          Serial.println("Falha");
           return false;
         }
         else
@@ -192,11 +225,11 @@ bool loadFileFSConfigFile(void)
 
           if (json["device_name"])
             strncpy(device_name, json["device_name"], sizeof(device_name));
-            
+
         }
         else
         {
-          Serial.println("failed");
+          Serial.println("Falha");
           return false;
         }
         //json.printTo(Serial);
@@ -209,7 +242,7 @@ bool loadFileFSConfigFile(void)
   }
   else
   {
-    Serial.println("failed to mount FS");
+    Serial.println("Falha ao montar FS");
     return false;
   }
   return true;
@@ -218,7 +251,7 @@ bool loadFileFSConfigFile(void)
 bool saveFileFSConfigFile(void)
 {
   SPIFFS.begin(true);
-  Serial.println("Saving config");
+  Serial.println("Salvando configuração");
 
 #if (ARDUINOJSON_VERSION_MAJOR >= 6)
   DynamicJsonDocument json(1024);
@@ -234,7 +267,7 @@ bool saveFileFSConfigFile(void)
 
   if (!configFile)
   {
-    Serial.println("Failed to open config file for writing");
+    Serial.println("Falha ao abrir o arquivo de configuração para a escrita");
   }
 
 #if (ARDUINOJSON_VERSION_MAJOR >= 6)
@@ -310,7 +343,7 @@ void setup()
   SPIFFS.begin(true);
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("\nStarting AutoConnectWithFSParams");
+  Serial.println("\nIniciando AutoConnectWithFSParams");
   pinMode(12, OUTPUT);
   myservo.attach(13);
   pinMode(botao, INPUT);
@@ -326,7 +359,7 @@ void setup()
   // Use this to default DHCP hostname to ESP8266-XXXXXX or ESP32-XXXXXX
   //ESP_WiFiManager ESP_wifiManager;
   // Use this to personalize DHCP hostname (RFC952 conformed)
-  ESP_WiFiManager ESP_wifiManager("AutoConnect-FSParams");
+  ESP_WiFiManager ESP_wifiManager("BeaverHouse");
 
   //set config save notify callback
   ESP_wifiManager.setSaveConfigCallback(saveConfigCallback);
@@ -356,16 +389,16 @@ void setup()
   Router_Pass = ESP_wifiManager.WiFi_Pass();
 
   //Remove this line if you do not want to see WiFi password printed
-  Serial.println("\nStored: SSID = " + Router_SSID + ", Pass = " + Router_Pass);
+  Serial.println("\nSalvo: SSID = " + Router_SSID + ", Pass = " + Router_Pass);
 
   if (Router_SSID != "")
   {
     ESP_wifiManager.setConfigPortalTimeout(120); //If no access point name has been previously entered disable timeout.
-    Serial.println("Got stored Credentials. Timeout 120s");
+    Serial.println("Obteve credenciais armazenadas. Tempo limite de 120s");
   }
   else
   {
-    Serial.println("No stored Credentials. No timeout");
+    Serial.println("Nenhuma credencial armazenada. Sem tempo limite");
   }
 
   String chipID = String(ESP_getChipId(), HEX);
@@ -380,7 +413,7 @@ void setup()
   // 2) If no stored Credentials, stay in Config portal until get WiFi Credentials
   if (!ESP_wifiManager.autoConnect(AP_SSID.c_str(), AP_PASS.c_str()))
   {
-    Serial.println("failed to connect and hit timeout");
+    Serial.println("Falha ao conectar e atingir o tempo limite");
 
     //reset and try again, or maybe put it to deep sleep
 #ifdef ESP8266
@@ -392,55 +425,24 @@ void setup()
   }
 
   //if you get here you have connected to the WiFi
-  Serial.println("WiFi connected");
+  Serial.println("WiFi conectado");
 
   //read updated parameters
   strncpy(user_email, custom_user_email.getValue(), sizeof(user_email));
   strncpy(device_name, custom_device_name.getValue(), sizeof(device_name));
-  Serial.println(strncpy(user_email, custom_user_email.getValue(), sizeof(user_email)));
-  Serial.println(strncpy(device_name, custom_device_name.getValue(), sizeof(device_name)));
-    
+
   //save the custom parameters to FS
   if (shouldSaveConfig)
   {
     saveFileFSConfigFile();
   }
 
-  Serial.println("local ip");
+  Serial.println("IP local");
   Serial.println(WiFi.localIP());
 
-    //Inicia a conexão com o Firebase
-  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
 
-  userpath = "/users/";
-  userpath += user_email;
-  userpath += "/devices/";
-  userpath += mac;
-
-  userpath.replace(".", ":");
-
-  
-  devicename = Firebase.getString(userpath + "/name");
-
-  if(devicename != ""){
-      deviceicon = Firebase.getString(userpath + "/icon");
-      devicename = Firebase.getString(userpath + "/name");
-      deviceroom = Firebase.getString(userpath + "/room");
-
-       Firebase.setString(userpath + "/icon", deviceicon);
-       Firebase.setString(userpath + "/mac", mac);
-       Firebase.setString(userpath + "/name", devicename);
-       Firebase.setString(userpath + "/room", deviceroom);
-       Firebase.setString(userpath + "/status", "desligado");
-  }
-  else{
-       Firebase.setString(userpath + "/icon", "Lâmpada");
-       Firebase.setString(userpath + "/mac", mac);
-       Firebase.setString(userpath + "/name", device_name);
-       Firebase.setString(userpath + "/room", "Nenhum");
-       Firebase.setString(userpath + "/status", "desligado");
-  }
-
+  conexaoFirebase();
+  setupNTP();
 
 }
 
@@ -450,36 +452,147 @@ void loop()
   // put your main code here, to run repeatedly:
   check_status();
 
-  devicestatus = Firebase.getString(userpath + "/status");                     // get led status input from firebase
-  
+  devicestatus = Firebase.getString(userpath + "/status");
+
   int estado_botao = digitalRead(botao);
 
   Serial.println(estado_botao);
-  // if condition checks if push button is pressed
-  // if pressed LED will turn on otherwise remain off
+
   if ( estado_botao == HIGH && devicestatus == "desligado" )
   {
     Firebase.setString(userpath + "/status", "ligado");
   }
-  else
-  if ( estado_botao == HIGH && devicestatus == "ligado" )
+  else if ( estado_botao == HIGH && devicestatus == "ligado" )
   {
     Firebase.setString(userpath + "/status", "desligado");
   }
 
   if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
-    Serial.println("Led Turned ON");
+    Serial.println("Ligado");
     digitalWrite(12, HIGH);
     myservo.write(180);
   }
 
   else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
-    Serial.println("Led Turned OFF");
+    Serial.println("Desligado");
     digitalWrite(12, LOW);
     myservo.write(0);
   }
   else {
+    Serial.println("Erro/desligado");
     digitalWrite(12, LOW);
     myservo.write(0);
   }
+
+  dataNTP();
+}
+
+void conexaoFirebase() {
+
+  //Inicia a conexão com o Firebase
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+
+  //"Gerando" caminho do usuário do banco
+  userpath = "/users/";
+  userpath += user_email;
+  userpath += "/devices/";
+  userpath += mac;
+
+  //Trocando "." por ":" no caminho do usuário para não ter incopatibilidade
+  userpath.replace(".", ":");
+
+  //Atribuição do valor do nome pego no banco para o "devicename"
+  devicename = Firebase.getString(userpath + "/name");
+
+  //IF para verificar se o nome existe ou não
+  if (devicename != "") {
+    //Caso exista, apenas troca o status do dispositivo para "desligado"
+    Firebase.setString(userpath + "/status", "desligado");
+  }
+
+  else {
+    //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
+    Firebase.setString(userpath + "/icon", "Lâmpada");
+    Firebase.setString(userpath + "/mac", mac);
+    Firebase.setString(userpath + "/name", device_name);
+    Firebase.setString(userpath + "/room", "Nenhum");
+    Firebase.setString(userpath + "/status", "desligado");
+  }
+}
+  void setupNTP() {
+    //Inicializa o client NTP
+    ntpClient.begin();
+
+    //Espera pelo primeiro update online
+    Serial.println("Esperando pelo primeiro update (ntpClient)");
+    while (!ntpClient.update())
+    {
+      Serial.print(".");
+      ntpClient.forceUpdate();
+      delay(500);
+    }
+
+    Serial.println();
+    Serial.println("Primeiro update completo (ntpClient)");
+  }
+
+ void dataNTP() {
+  //Recupera os dados sobre a data e horário
+  Date date = getDate();
+
+
+  /*char datainteira1[50];
+  sprintf(datainteira1, "\n\n %s %02d/%02d/%d %02d:%02d:%02d",
+          dayOfWeekNames[date.dayOfWeek],
+          date.day,
+          date.month,
+          date.year,
+          date.hours,
+          date.minutes,
+          date.seconds);
+
+  char datainteira2[50];
+  sprintf(datainteira2, "\n\n %s %02d:%02d:%02d",
+          dayOfWeekNames[date.dayOfWeek],
+          date.hours,
+          date.minutes,
+          date.seconds);*/
+
+  char datainteira3[50];
+  sprintf(datainteira3, "%02d:%02d:%02d",
+          date.hours,
+          date.minutes,
+          date.seconds);
+
+  Serial.printf(datainteira3);
+
+  devicedate = Firebase.getString(userpath + "/timer");
+
+  Serial.println(devicedate);
+
+  if (devicedate == datainteira3) {
+    digitalWrite(12, HIGH);
+  }
+
+
+  delay(1000);
+}
+
+Date getDate() {
+  //Recupera os dados de data e horário usando o client NTP
+  char* strDate = (char*)ntpClient.getFormattedDate().c_str();
+
+  //Passa os dados da string para a struct
+  Date date;
+  sscanf(strDate, "%d-%d-%dT%d:%d:%dZ",
+         &date.year,
+         &date.month,
+         &date.day,
+         &date.hours,
+         &date.minutes,
+         &date.seconds);
+
+  //Dia da semana de 0 a 6, sendo 0 o domingo
+  date.dayOfWeek = ntpClient.getDay();
+  return date;
 }
