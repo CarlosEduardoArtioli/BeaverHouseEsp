@@ -145,6 +145,8 @@ int pos = 0;
 //Botão
 #define botao 14
 
+#define led 12
+
 //flag for saving data
 bool shouldSaveConfig = false;
 
@@ -344,7 +346,7 @@ void setup()
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("\nIniciando AutoConnectWithFSParams");
-  pinMode(12, OUTPUT);
+  pinMode(led, OUTPUT);
   myservo.attach(13);
   pinMode(botao, INPUT);
 
@@ -449,40 +451,15 @@ void setup()
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
-  check_status();
 
   devicestatus = Firebase.getString(userpath + "/status");
 
-  int estado_botao = digitalRead(botao);
+  // put your main code here, to run repeatedly:
+  check_status();
 
-  Serial.println(estado_botao);
+  botaoStatus();
 
-  if ( estado_botao == HIGH && devicestatus == "desligado" )
-  {
-    Firebase.setString(userpath + "/status", "ligado");
-  }
-  else if ( estado_botao == HIGH && devicestatus == "ligado" )
-  {
-    Firebase.setString(userpath + "/status", "desligado");
-  }
-
-  if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
-    Serial.println("Ligado");
-    digitalWrite(12, HIGH);
-    myservo.write(180);
-  }
-
-  else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
-    Serial.println("Desligado");
-    digitalWrite(12, LOW);
-    myservo.write(0);
-  }
-  else {
-    Serial.println("Erro/desligado");
-    digitalWrite(12, LOW);
-    myservo.write(0);
-  }
+  deviceStatus();
 
   dataNTP();
 }
@@ -519,30 +496,31 @@ void conexaoFirebase() {
     Firebase.setString(userpath + "/status", "desligado");
   }
 }
-  void setupNTP() {
-    //Inicializa o client NTP
-    ntpClient.begin();
 
-    //Espera pelo primeiro update online
-    Serial.println("Esperando pelo primeiro update (ntpClient)");
-    while (!ntpClient.update())
-    {
-      Serial.print(".");
-      ntpClient.forceUpdate();
-      delay(500);
-    }
+void setupNTP() {
+  //Inicializa o client NTP
+  ntpClient.begin();
 
-    Serial.println();
-    Serial.println("Primeiro update completo (ntpClient)");
+  //Espera pelo primeiro update online
+  Serial.println("Esperando pelo primeiro update (ntpClient)");
+  while (!ntpClient.update())
+  {
+    Serial.print(".");
+    ntpClient.forceUpdate();
+    delay(500);
   }
 
- void dataNTP() {
+  Serial.println();
+  Serial.println("Primeiro update completo (ntpClient)");
+}
+
+void dataNTP() {
   //Recupera os dados sobre a data e horário
   Date date = getDate();
 
 
   /*char datainteira1[50];
-  sprintf(datainteira1, "\n\n %s %02d/%02d/%d %02d:%02d:%02d",
+    sprintf(datainteira1, "\n\n %s %02d/%02d/%d %02d:%02d:%02d",
           dayOfWeekNames[date.dayOfWeek],
           date.day,
           date.month,
@@ -551,18 +529,17 @@ void conexaoFirebase() {
           date.minutes,
           date.seconds);
 
-  char datainteira2[50];
-  sprintf(datainteira2, "\n\n %s %02d:%02d:%02d",
+    char datainteira2[50];
+    sprintf(datainteira2, "\n\n %s %02d:%02d:%02d",
           dayOfWeekNames[date.dayOfWeek],
           date.hours,
           date.minutes,
           date.seconds);*/
 
   char datainteira3[50];
-  sprintf(datainteira3, "%02d:%02d:%02d",
+  sprintf(datainteira3, "%02d:%02d",
           date.hours,
-          date.minutes,
-          date.seconds);
+          date.minutes);
 
   Serial.printf(datainteira3);
 
@@ -570,12 +547,17 @@ void conexaoFirebase() {
 
   Serial.println(devicedate);
 
+
   if (devicedate == datainteira3) {
-    digitalWrite(12, HIGH);
+    if ( devicestatus == "desligado" )
+    {
+      Firebase.setString(userpath + "/status", "ligado");
+    }
+    else if ( devicestatus == "ligado" )
+    {
+      Firebase.setString(userpath + "/status", "desligado");
+    }
   }
-
-
-  delay(1000);
 }
 
 Date getDate() {
@@ -595,4 +577,40 @@ Date getDate() {
   //Dia da semana de 0 a 6, sendo 0 o domingo
   date.dayOfWeek = ntpClient.getDay();
   return date;
+}
+
+void botaoStatus() {
+
+  int estado_botao = digitalRead(botao);
+
+  Serial.println(estado_botao);
+
+  if ( estado_botao == HIGH && devicestatus == "desligado" )
+  {
+    Firebase.setString(userpath + "/status", "ligado");
+  }
+  else if ( estado_botao == HIGH && devicestatus == "ligado" )
+  {
+    Firebase.setString(userpath + "/status", "desligado");
+  }
+}
+
+void deviceStatus() {
+
+  if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
+    Serial.println("Ligado");
+    digitalWrite(led, HIGH);
+    myservo.write(180);
+  }
+
+  else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
+    Serial.println("Desligado");
+    digitalWrite(led, LOW);
+    myservo.write(0);
+  }
+  else {
+    Serial.println("Erro/desligado");
+    digitalWrite(led, LOW);
+    myservo.write(0);
+  }
 }
