@@ -76,7 +76,7 @@
 // Now support ArduinoJson 6.0.0+ ( tested with v6.14.1 )
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#include <IOXhop_FirebaseESP32.h>
+#include <FirebaseESP32.h>
 
 #include <Servo.h>
 
@@ -109,7 +109,7 @@ String userpath = "";
 String devicename = "";
 String deviceicon = "";
 String deviceroom = "";
-String devicedate = "";
+String devicetimer = "";
 
 //Fuso Horário, no caso horário de verão de Brasília
 int timeZone = -3;
@@ -146,6 +146,10 @@ int pos = 0;
 #define botao 14
 
 #define led 12
+
+FirebaseData firebaseData;
+
+long previousMillisLoop = 0;
 
 //flag for saving data
 bool shouldSaveConfig = false;
@@ -443,31 +447,10 @@ void setup()
   Serial.println(WiFi.localIP());
 
 
-  conexaoFirebase();
-  setupNTP();
-
-}
-
-
-void loop()
-{
-
-  devicestatus = Firebase.getString(userpath + "/status");
-
-  // put your main code here, to run repeatedly:
-  check_status();
-
-  botaoStatus();
-
-  deviceStatus();
-
-  dataNTP();
-}
-
-void conexaoFirebase() {
-
   //Inicia a conexão com o Firebase
   Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+
+  Firebase.reconnectWiFi(true);
 
   //"Gerando" caminho do usuário do banco
   userpath = "/users/";
@@ -475,26 +458,84 @@ void conexaoFirebase() {
   userpath += "/devices/";
   userpath += mac;
 
+  Serial.println(userpath);
+
   //Trocando "." por ":" no caminho do usuário para não ter incopatibilidade
   userpath.replace(".", ":");
 
-  //Atribuição do valor do nome pego no banco para o "devicename"
-  devicename = Firebase.getString(userpath + "/name");
+  /*Serial.println(Firebase.get(firebaseData, userpath));
 
-  //IF para verificar se o nome existe ou não
-  if (devicename != "") {
+    //IF para verificar se o nome existe ou não
+    if (Firebase.get(firebaseData, userpath)) {
     //Caso exista, apenas troca o status do dispositivo para "desligado"
-    Firebase.setString(userpath + "/status", "desligado");
+    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    Firebase.setString(firebaseData, userpath + "/name", device_name);
+    }
+
+    else {
+    //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
+    Firebase.setString(firebaseData, userpath + "/icon", "Lâmpada");
+    Firebase.setString(firebaseData, userpath + "/mac", mac);
+    Firebase.setString(firebaseData, userpath + "/name", device_name);
+    Firebase.setString(firebaseData, userpath + "/room", "Nenhum");
+    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    }*/
+
+  if (!Firebase.beginStream(firebaseData, userpath + "/status"))
+  {
+    Serial.println(firebaseData.errorReason());
   }
 
-  else {
-    //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
-    Firebase.setString(userpath + "/icon", "Lâmpada");
-    Firebase.setString(userpath + "/mac", mac);
-    Firebase.setString(userpath + "/name", device_name);
-    Firebase.setString(userpath + "/room", "Nenhum");
-    Firebase.setString(userpath + "/status", "desligado");
+  setupNTP();
+
+}
+
+
+void loop()
+{
+  // put your main code here, to run repeatedly:
+  if (!Firebase.readStream(firebaseData))
+  {
+    Serial.println(firebaseData.errorReason());
   }
+
+  if (firebaseData.streamTimeout())
+  {
+    Serial.println("Stream timeout, resume streaming...");
+    Serial.println();
+  }
+
+  if (firebaseData.streamAvailable())
+  {
+
+    if (firebaseData.dataType() == "int")
+      Serial.println(firebaseData.intData());
+    else if (firebaseData.dataType() == "float")
+      Serial.println(firebaseData.floatData(), 5);
+    else if (firebaseData.dataType() == "double")
+      printf("%.9lf\n", firebaseData.doubleData());
+    else if (firebaseData.dataType() == "boolean")
+      Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
+    else if (firebaseData.dataType() == "string") {
+      Serial.println(firebaseData.stringData());
+      devicestatus = firebaseData.stringData();
+    }
+    else if (firebaseData.dataType() == "json")
+      Serial.println(firebaseData.jsonString());
+
+  }
+
+  unsigned long currentMillisLoop = millis();
+
+  if (currentMillisLoop - previousMillisLoop > 1000) {
+    previousMillisLoop = currentMillisLoop;
+
+    dataNTP();
+  }
+
+  check_status();
+
+  deviceStatus();
 }
 
 void setupNTP() {
@@ -536,28 +577,29 @@ void dataNTP() {
           date.minutes,
           date.seconds);*/
 
-  char datainteira3[50];
-  sprintf(datainteira3, "%02d:%02d",
+  char datainteira[50];
+  sprintf(datainteira, "%02d:%02d:%02d",
           date.hours,
-          date.minutes);
+          date.minutes,
+          date.seconds);
 
-  Serial.printf(datainteira3);
+  Serial.printf(datainteira);
+  Serial.println ();
 
-  devicedate = Firebase.getString(userpath + "/timer");
-
-  Serial.println(devicedate);
-
-
-  if (devicedate == datainteira3) {
-    if ( devicestatus == "desligado" )
+  /*if (Firebase.get(firebaseData, userpath + "/timer"))
     {
-      Firebase.setString(userpath + "/status", "ligado");
+    if (firebaseData.stringData() == datainteira) {
+      if (Firebase.get(firebaseData, userpath + "/status"))
+      {
+        if (firebaseData.stringData() == "ligado") {
+          Firebase.setString(firebaseData, userpath + "/status", "desligado");
+        }
+        else if (firebaseData.stringData() == "desligado") {
+          Firebase.setString(firebaseData, userpath + "/status", "ligado");
+        }
+      }
     }
-    else if ( devicestatus == "ligado" )
-    {
-      Firebase.setString(userpath + "/status", "desligado");
-    }
-  }
+    }*/
 }
 
 Date getDate() {
@@ -579,38 +621,31 @@ Date getDate() {
   return date;
 }
 
-void botaoStatus() {
+void deviceStatus() {
 
   int estado_botao = digitalRead(botao);
 
-  Serial.println(estado_botao);
-
-  if ( estado_botao == HIGH && devicestatus == "desligado" )
-  {
-    Firebase.setString(userpath + "/status", "ligado");
-  }
-  else if ( estado_botao == HIGH && devicestatus == "ligado" )
-  {
-    Firebase.setString(userpath + "/status", "desligado");
-  }
-}
-
-void deviceStatus() {
-
-  if (devicestatus == "ligado") {                         // compare the input of led status received from firebase
-    Serial.println("Ligado");
+  if (devicestatus == "ligado") {
     digitalWrite(led, HIGH);
     myservo.write(180);
   }
 
-  else if (devicestatus == "desligado") {              // compare the input of led status received from firebase
-    Serial.println("Desligado");
+  else if (devicestatus == "desligado") {
     digitalWrite(led, LOW);
     myservo.write(0);
   }
   else {
-    Serial.println("Erro/desligado");
     digitalWrite(led, LOW);
     myservo.write(0);
   }
+
+  if ( estado_botao == HIGH && devicestatus == "desligado" )
+  {
+    Firebase.setString(firebaseData, userpath + "/status", "ligado");
+  }
+  else if ( estado_botao == HIGH && devicestatus == "ligado" )
+  {
+    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+  }
+
 }
