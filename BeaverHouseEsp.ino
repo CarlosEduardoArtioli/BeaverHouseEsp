@@ -463,28 +463,31 @@ void setup()
   //Trocando "." por ":" no caminho do usuário para não ter incopatibilidade
   userpath.replace(".", ":");
 
-  /*Serial.println(Firebase.get(firebaseData, userpath));
+  Serial.println(Firebase.getString(firebaseData, userpath + "/name"));
 
-    //IF para verificar se o nome existe ou não
-    if (Firebase.get(firebaseData, userpath)) {
-    //Caso exista, apenas troca o status do dispositivo para "desligado"
-    Firebase.setString(firebaseData, userpath + "/status", "desligado");
-    Firebase.setString(firebaseData, userpath + "/name", device_name);
-    }
-
-    else {
+  //IF para verificar se o nome existe ou não
+  if ((Firebase.getString(firebaseData, userpath + "/name")) == 0) {
     //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
     Firebase.setString(firebaseData, userpath + "/icon", "Lâmpada");
     Firebase.setString(firebaseData, userpath + "/mac", mac);
     Firebase.setString(firebaseData, userpath + "/name", device_name);
     Firebase.setString(firebaseData, userpath + "/room", "Nenhum");
     Firebase.setString(firebaseData, userpath + "/status", "desligado");
-    }*/
+    Firebase.setString(firebaseData, userpath + "/timer", "");
+  }
+
+  else {
+    //Caso exista, apenas troca o status do dispositivo para "desligado"
+    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    Firebase.setString(firebaseData, userpath + "/name", device_name);
+  }
 
   if (!Firebase.beginStream(firebaseData, userpath))
   {
     Serial.println(firebaseData.errorReason());
   }
+
+  verificaDados();
 
   setupNTP();
 
@@ -493,7 +496,26 @@ void setup()
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
+
+  verificaDados();
+
+  unsigned long currentMillisLoop = millis();
+
+  if (currentMillisLoop - previousMillisLoop > 1000) {
+    previousMillisLoop = currentMillisLoop;
+
+    dataNTP();
+  }
+
+  check_status();
+
+  deviceStatus();
+
+  estadoBotao();
+}
+
+void verificaDados() {
+
   if (!Firebase.readStream(firebaseData))
   {
     Serial.println(firebaseData.errorReason());
@@ -530,18 +552,6 @@ void loop()
       Serial.println(firebaseData.jsonString());
 
   }
-
-  unsigned long currentMillisLoop = millis();
-
-  if (currentMillisLoop - previousMillisLoop > 1000) {
-    previousMillisLoop = currentMillisLoop;
-
-    dataNTP();
-  }
-
-  check_status();
-
-  deviceStatus();
 }
 
 void setupNTP() {
@@ -589,9 +599,11 @@ void dataNTP() {
   if (devicetimer == datainteira) {
     if (devicestatus == "ligado") {
       Firebase.setString(firebaseData, userpath + "/status", "desligado");
+      digitalWrite(led, HIGH);
     }
     else if (devicestatus == "desligado") {
       Firebase.setString(firebaseData, userpath + "/status", "ligado");
+      digitalWrite(led, LOW);
     }
   }
 }
@@ -617,8 +629,6 @@ Date getDate() {
 
 void deviceStatus() {
 
-  int estado_botao = digitalRead(botao);
-
   if (devicestatus == "ligado") {
     digitalWrite(led, HIGH);
     myservo.write(180);
@@ -632,14 +642,20 @@ void deviceStatus() {
     digitalWrite(led, LOW);
     myservo.write(0);
   }
+}
+
+void estadoBotao() {
+
+  int estado_botao = digitalRead(botao);
 
   if ( estado_botao == HIGH && devicestatus == "desligado" )
   {
     Firebase.setString(firebaseData, userpath + "/status", "ligado");
+    digitalWrite(led, HIGH);
   }
   else if ( estado_botao == HIGH && devicestatus == "ligado" )
   {
     Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    digitalWrite(led, LOW);
   }
-
 }
