@@ -399,8 +399,8 @@ void setup()
 
   if (Router_SSID != "")
   {
-    ESP_wifiManager.setConfigPortalTimeout(120); //If no access point name has been previously entered disable timeout.
-    Serial.println("Obteve credenciais armazenadas. Tempo limite de 120s");
+    ESP_wifiManager.setConfigPortalTimeout(20); //If no access point name has been previously entered disable timeout.
+    Serial.println("Obteve credenciais armazenadas. Tempo limite de 20s");
   }
   else
   {
@@ -548,9 +548,45 @@ void verificaDados() {
         devicetimer = firebaseData.stringData();
       }
     }
-    else if (firebaseData.dataType() == "json")
-      Serial.println(firebaseData.jsonString());
+    else if (firebaseData.dataType() == "json") {
+      FirebaseJson &json = firebaseData.jsonObject();
+      //Print all object data
+      Serial.println("Pretty printed JSON data:");
+      String jsonStr;
+      json.toString(jsonStr, true);
+      Serial.println(jsonStr);
+      Serial.println();
+      Serial.println("Iterate JSON data:");
+      Serial.println();
+      size_t len = json.iteratorBegin();
+      String key, value = "";
+      int type = 0;
+      for (size_t i = 0; i < len; i++)
+      {
+        json.iteratorGet(i, type, key, value);
+        Serial.print(i);
+        Serial.print(", ");
+        Serial.print("Type: ");
+        Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
+        if (type == FirebaseJson::JSON_OBJECT)
+        {
+          Serial.print(", Key: ");
+          Serial.print(key);
+        }
+        Serial.print(", Value: ");
+        Serial.println(value);
 
+        if (key == "status") {
+          devicestatus = value;
+          Serial.println("status do dispositivo: " + devicestatus);
+        }
+        if (key == "timer") {
+          devicetimer = value;
+          Serial.println("timer do dispositivo: " + devicetimer);
+        }
+      }
+      json.iteratorEnd();
+    }
   }
 }
 
@@ -599,11 +635,9 @@ void dataNTP() {
   if (devicetimer == datainteira) {
     if (devicestatus == "ligado") {
       Firebase.setString(firebaseData, userpath + "/status", "desligado");
-      digitalWrite(led, HIGH);
     }
     else if (devicestatus == "desligado") {
       Firebase.setString(firebaseData, userpath + "/status", "ligado");
-      digitalWrite(led, LOW);
     }
   }
 }
