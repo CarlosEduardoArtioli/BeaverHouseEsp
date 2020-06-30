@@ -481,7 +481,7 @@ void setup()
     Firebase.setString(firebaseData, userpath + "/status", "desligado");
     }*/
 
-  if (!Firebase.beginStream(firebaseData, userpath + "/status"))
+  if (!Firebase.beginStream(firebaseData, userpath))
   {
     Serial.println(firebaseData.errorReason());
   }
@@ -518,7 +518,13 @@ void loop()
       Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
     else if (firebaseData.dataType() == "string") {
       Serial.println(firebaseData.stringData());
-      devicestatus = firebaseData.stringData();
+      Serial.println(firebaseData.dataPath());
+      if (firebaseData.dataPath() == "/status") {
+        devicestatus = firebaseData.stringData();
+      }
+      else if (firebaseData.dataPath() == "/timer") {
+        devicetimer = firebaseData.stringData();
+      }
     }
     else if (firebaseData.dataType() == "json")
       Serial.println(firebaseData.jsonString());
@@ -568,13 +574,6 @@ void dataNTP() {
           date.year,
           date.hours,
           date.minutes,
-          date.seconds);
-
-    char datainteira2[50];
-    sprintf(datainteira2, "\n\n %s %02d:%02d:%02d",
-          dayOfWeekNames[date.dayOfWeek],
-          date.hours,
-          date.minutes,
           date.seconds);*/
 
   char datainteira[50];
@@ -586,20 +585,15 @@ void dataNTP() {
   Serial.printf(datainteira);
   Serial.println ();
 
-  /*if (Firebase.get(firebaseData, userpath + "/timer"))
-    {
-    if (firebaseData.stringData() == datainteira) {
-      if (Firebase.get(firebaseData, userpath + "/status"))
-      {
-        if (firebaseData.stringData() == "ligado") {
-          Firebase.setString(firebaseData, userpath + "/status", "desligado");
-        }
-        else if (firebaseData.stringData() == "desligado") {
-          Firebase.setString(firebaseData, userpath + "/status", "ligado");
-        }
-      }
+
+  if (devicetimer == datainteira) {
+    if (devicestatus == "ligado") {
+      Firebase.setString(firebaseData, userpath + "/status", "desligado");
     }
-    }*/
+    else if (devicestatus == "desligado") {
+      Firebase.setString(firebaseData, userpath + "/status", "ligado");
+    }
+  }
 }
 
 Date getDate() {
