@@ -45,6 +45,12 @@
 
 #define FileFS            SPIFFS
 
+#include <FirebaseESP32.h>
+#include <FirebaseESP32HTTPClient.h>
+#include <FirebaseJson.h>
+
+#define led 12
+
 #else
 
 #include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
@@ -66,6 +72,13 @@
 #endif
 
 #include <LittleFS.h>
+
+#include <FirebaseESP8266.h>
+#include <FirebaseESP8266HTTPClient.h>
+#include <FirebaseFS.h>
+#include <FirebaseJson.h>
+
+#define led 0
 #endif
 
 // Pin D2 mapped to pin GPIO2/ADC12 of ESP32, or GPIO2/TXD1 of NodeMCU control on-board LED
@@ -75,8 +88,6 @@
 
 // Now support ArduinoJson 6.0.0+ ( tested with v6.14.1 )
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
-
-#include <FirebaseESP32.h>
 
 #include <Servo.h>
 
@@ -136,7 +147,14 @@ NTPClient ntpClient(
   60000);                 //Intervalo entre verificações online
 
 //Nomes dos dias da semana
-char* dayOfWeekNames[] = {"Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"};
+char* dayOfWeekNames[] = {"dom", "seg", "ter", "qua", "qui", "sex", "sab"};
+String deviceweek1 = "";
+String deviceweek2 = "";
+String deviceweek3 = "";
+String deviceweek4 = "";
+String deviceweek5 = "";
+String deviceweek6 = "";
+String deviceweek7 = "";
 
 //Servo
 Servo myservo;
@@ -144,8 +162,6 @@ int pos = 0;
 
 //Botão
 #define botao 14
-
-#define led 12
 
 FirebaseData firebaseData;
 
@@ -157,14 +173,12 @@ bool shouldSaveConfig = false;
 //callback notifying us of the need to save config
 void saveConfigCallback(void)
 {
-  SPIFFS.begin(true);
   Serial.println("Deve salvar a configuração");
   shouldSaveConfig = true;
 }
 
 bool loadFileFSConfigFile(void)
 {
-  SPIFFS.begin(true);
   //clean FS, for testing
   //FileFS.format();
 
@@ -256,7 +270,6 @@ bool loadFileFSConfigFile(void)
 
 bool saveFileFSConfigFile(void)
 {
-  SPIFFS.begin(true);
   Serial.println("Salvando configuração");
 
 #if (ARDUINOJSON_VERSION_MAJOR >= 6)
@@ -346,7 +359,6 @@ void check_status()
 
 void setup()
 {
-  SPIFFS.begin(true);
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("\nIniciando AutoConnectWithFSParams");
@@ -411,7 +423,7 @@ void setup()
   chipID.toUpperCase();
 
   // SSID and PW for Config Portal
-  AP_SSID = "BeaverHouse" + chipID + "_" + device_name;
+  AP_SSID = "BeaverHouse" + chipID;
   AP_PASS = chipID;
 
   // Get Router SSID and PASS from EEPROM, then open Config portal AP named "ESP_XXXXXX_AutoConnectAP" and PW "MyESP_XXXXXX"
@@ -468,12 +480,53 @@ void setup()
   //IF para verificar se o nome existe ou não
   if ((Firebase.getString(firebaseData, userpath + "/name")) == 0) {
     //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
-    Firebase.setString(firebaseData, userpath + "/icon", "Lâmpada");
+    Firebase.setString(firebaseData, userpath + "/icon", "Hardware");
     Firebase.setString(firebaseData, userpath + "/mac", mac);
+    Firebase.setString(firebaseData, userpath + "/iconRoom", "Casa");
+    Firebase.setString(firebaseData, userpath + "/ap", "BeaverHouse" + chipID);
     Firebase.setString(firebaseData, userpath + "/name", device_name);
     Firebase.setString(firebaseData, userpath + "/room", "Nenhum");
     Firebase.setString(firebaseData, userpath + "/status", "desligado");
-    Firebase.setString(firebaseData, userpath + "/timer", "");
+
+    Firebase.setString(firebaseData, userpath + "/timer/timer1/timer", "");
+    Firebase.setString(firebaseData, userpath + "/timer/timer1/action", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week1", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week2", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week3", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week4", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week5", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1/week6", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer1//week7", "");
+
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/timer", "");
+    Firebase.setString(firebaseData, userpath + "/timer/timer2/action", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week1", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week2", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week3", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week4", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week5", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2/week6", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer2//week7", "");
+
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/timer", "");
+    Firebase.setString(firebaseData, userpath + "/timer/timer3/action", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week1", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week2", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week3", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week4", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week5", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3/week6", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer3//week7", "");
+
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/timer", "");
+    Firebase.setString(firebaseData, userpath + "/timer/timer4/action", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week1", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week2", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week3", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week4", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week5", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4/week6", "");
+    Firebase.setString(firebaseData, userpath + "/timer//timer4//week7", "");
   }
 
   else {
@@ -505,6 +558,7 @@ void loop()
     previousMillisLoop = currentMillisLoop;
 
     dataNTP();
+
   }
 
   check_status();
@@ -544,7 +598,7 @@ void verificaDados() {
       if (firebaseData.dataPath() == "/status") {
         devicestatus = firebaseData.stringData();
       }
-      else if (firebaseData.dataPath() == "/timer") {
+      if (firebaseData.dataPath() == "/timer") {
         devicetimer = firebaseData.stringData();
       }
     }
@@ -584,6 +638,34 @@ void verificaDados() {
           devicetimer = value;
           Serial.println("timer do dispositivo: " + devicetimer);
         }
+        if (key == "week0") {
+          deviceweek1 = value;
+          Serial.println("Device Week: " + deviceweek1);
+        }
+        if (key == "week1") {
+          deviceweek2 = value;
+          Serial.println("Device Week: " + deviceweek2);
+        }
+        if (key == "week2") {
+          deviceweek3 = value;
+          Serial.println("Device Week: " + deviceweek3);
+        }
+        if (key == "week3") {
+          deviceweek4 = value;
+          Serial.println("Device Week: " + deviceweek4);
+        }
+        if (key == "week4") {
+          deviceweek5 = value;
+          Serial.println("Device Week: " + deviceweek5);
+        }
+        if (key == "week5") {
+          deviceweek6 = value;
+          Serial.println("Device Week: " + deviceweek6);
+        }
+        if (key == "week6") {
+          deviceweek7 = value;
+          Serial.println("Device Week: " + deviceweek7);
+        }
       }
       json.iteratorEnd();
     }
@@ -622,22 +704,31 @@ void dataNTP() {
           date.minutes,
           date.seconds);*/
 
-  char datainteira[50];
-  sprintf(datainteira, "%02d:%02d:%02d",
+  char horario[50];
+  sprintf(horario, "%02d:%02d:%02d",
           date.hours,
           date.minutes,
           date.seconds);
 
-  Serial.printf(datainteira);
+  char diadasemana[50];
+  sprintf(diadasemana, "%s",
+          dayOfWeekNames[date.dayOfWeek]);
+
+  Serial.printf(diadasemana);
+  Serial.printf(horario);
   Serial.println ();
 
 
-  if (devicetimer == datainteira) {
-    if (devicestatus == "ligado") {
-      Firebase.setString(firebaseData, userpath + "/status", "desligado");
-    }
-    else if (devicestatus == "desligado") {
-      Firebase.setString(firebaseData, userpath + "/status", "ligado");
+  if ( devicetimer == horario) {
+    if (deviceweek1 || deviceweek2 || deviceweek3 || deviceweek4 || deviceweek5 || deviceweek6 || deviceweek7 == diadasemana ) {
+      if (devicestatus == "ligado") {
+        devicestatus = "desligado";
+        Firebase.setString(firebaseData, userpath + "/status", "desligado");
+      }
+      else if (devicestatus == "desligado") {
+        devicestatus = "ligado";
+        Firebase.setString(firebaseData, userpath + "/status", "ligado");
+      }
     }
   }
 }
@@ -684,12 +775,16 @@ void estadoBotao() {
 
   if ( estado_botao == HIGH && devicestatus == "desligado" )
   {
-    Firebase.setString(firebaseData, userpath + "/status", "ligado");
     digitalWrite(led, HIGH);
+    myservo.write(180);
+    devicestatus = "ligado";
+    Firebase.setString(firebaseData, userpath + "/status", "ligado");
   }
   else if ( estado_botao == HIGH && devicestatus == "ligado" )
   {
-    Firebase.setString(firebaseData, userpath + "/status", "desligado");
     digitalWrite(led, LOW);
+    myservo.write(0);
+    devicestatus = "desligado";
+    Firebase.setString(firebaseData, userpath + "/status", "desligado");
   }
 }
