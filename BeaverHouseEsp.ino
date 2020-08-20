@@ -489,6 +489,7 @@ void setup()
     Firebase.setString(firebaseData, userpath + "/status", "desligado");
 
     Firebase.setString(firebaseData, userpath + "/timer/timer1/timer", "");
+    Firebase.setBool(firebaseData, userpath + "/timer/timer1/show", false);
     Firebase.setString(firebaseData, userpath + "/timer/timer1/action", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer1/week1", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer1/week2", "");
@@ -499,6 +500,7 @@ void setup()
     Firebase.setString(firebaseData, userpath + "/timer//timer1//week7", "");
 
     Firebase.setString(firebaseData, userpath + "/timer//timer2/timer", "");
+    Firebase.setBool(firebaseData, userpath + "/timer/timer2/show", false);
     Firebase.setString(firebaseData, userpath + "/timer/timer2/action", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer2/week1", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer2/week2", "");
@@ -509,6 +511,7 @@ void setup()
     Firebase.setString(firebaseData, userpath + "/timer//timer2//week7", "");
 
     Firebase.setString(firebaseData, userpath + "/timer//timer3/timer", "");
+    Firebase.setBool(firebaseData, userpath + "/timer/timer3/show", false);
     Firebase.setString(firebaseData, userpath + "/timer/timer3/action", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer3/week1", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer3/week2", "");
@@ -519,6 +522,7 @@ void setup()
     Firebase.setString(firebaseData, userpath + "/timer//timer3//week7", "");
 
     Firebase.setString(firebaseData, userpath + "/timer//timer4/timer", "");
+    Firebase.setBool(firebaseData, userpath + "/timer/timer4/show", false);
     Firebase.setString(firebaseData, userpath + "/timer/timer4/action", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer4/week1", "");
     Firebase.setString(firebaseData, userpath + "/timer//timer4/week2", "");
