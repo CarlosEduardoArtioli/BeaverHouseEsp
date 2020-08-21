@@ -830,6 +830,11 @@ void dataNTP() {
           date.minutes,
           date.seconds);
 
+  char horariosemseg[50];
+  sprintf(horariosemseg, "%02d:%02d",
+          date.hours,
+          date.minutes);
+
   char diadasemana[50];
   sprintf(diadasemana, "%s",
           dayOfWeekNames[date.dayOfWeek]);
@@ -839,7 +844,7 @@ void dataNTP() {
   Serial.println ();
 
 
-  if ( timer1timer == horario) {
+  if ( timer1timer == horario || timer1timer == horariosemseg) {
     if (timer1week1 == diadasemana || timer1week2 == diadasemana || timer1week3 == diadasemana || timer1week3 == diadasemana || timer1week4 == diadasemana || timer1week5 == diadasemana || timer1week6 == diadasemana || timer1week7 == diadasemana) {
       if (timer1action == "ligar") {
         devicestatus = "ligado";
@@ -852,7 +857,7 @@ void dataNTP() {
     }
   }
 
-  if ( timer2timer == horario) {
+  if ( timer2timer == horario  || timer2timer == horariosemseg) {
     if (timer2week1 == diadasemana || timer2week2 == diadasemana || timer2week3 == diadasemana || timer2week3 == diadasemana || timer2week4 == diadasemana || timer2week5 == diadasemana || timer2week6 == diadasemana || timer2week7 == diadasemana) {
       if (timer2action == "ligar") {
         devicestatus = "ligado";
@@ -865,7 +870,7 @@ void dataNTP() {
     }
   }
 
-  if ( timer3timer == horario) {
+  if ( timer3timer == horario || timer3timer == horariosemseg) {
     if (timer3week1 == diadasemana || timer3week2 == diadasemana || timer3week3 == diadasemana || timer3week3 == diadasemana || timer3week4 == diadasemana || timer3week5 == diadasemana || timer3week6 == diadasemana || timer3week7 == diadasemana) {
       if (timer3action == "ligar") {
         devicestatus = "ligado";
@@ -878,7 +883,7 @@ void dataNTP() {
     }
   }
 
-  if ( timer4timer == horario) {
+  if ( timer4timer == horario || timer4timer == horariosemseg) {
     if (timer4week1 == diadasemana || timer4week2 == diadasemana || timer4week3 == diadasemana || timer4week3 == diadasemana || timer4week4 == diadasemana || timer4week5 == diadasemana || timer4week6 == diadasemana || timer4week7 == diadasemana) {
       if (timer4action == "ligar") {
         devicestatus = "ligado";
