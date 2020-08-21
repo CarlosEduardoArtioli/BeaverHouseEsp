@@ -121,6 +121,47 @@ String devicename = "";
 String deviceicon = "";
 String deviceroom = "";
 String devicetimer = "";
+String action;
+
+String timer1action;
+String timer1timer;
+String timer1week1;
+String timer1week2;
+String timer1week3;
+String timer1week4;
+String timer1week5;
+String timer1week6;
+String timer1week7;
+
+String timer2action;
+String timer2timer;
+String timer2week1;
+String timer2week2;
+String timer2week3;
+String timer2week4;
+String timer2week5;
+String timer2week6;
+String timer2week7;
+
+String timer3action;
+String timer3timer;
+String timer3week1;
+String timer3week2;
+String timer3week3;
+String timer3week4;
+String timer3week5;
+String timer3week6;
+String timer3week7;
+
+String timer4action;
+String timer4timer;
+String timer4week1;
+String timer4week2;
+String timer4week3;
+String timer4week4;
+String timer4week5;
+String timer4week6;
+String timer4week7;
 
 //Fuso Horário, no caso horário de verão de Brasília
 int timeZone = -3;
@@ -148,13 +189,6 @@ NTPClient ntpClient(
 
 //Nomes dos dias da semana
 char* dayOfWeekNames[] = {"dom", "seg", "ter", "qua", "qui", "sex", "sab"};
-String deviceweek1 = "";
-String deviceweek2 = "";
-String deviceweek3 = "";
-String deviceweek4 = "";
-String deviceweek5 = "";
-String deviceweek6 = "";
-String deviceweek7 = "";
 
 //Servo
 Servo myservo;
@@ -184,13 +218,161 @@ void streamCallback(MultiPathStreamData stream)
     if (stream.get(childPath[i]))
     {
       Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
+      if (stream.dataPath == "/status") {
+        devicestatus = stream.value;
+      }
+      if (stream.type == "json") {
+        FirebaseJson &json = firebaseData1.jsonObject();
+        //Print all object data
+        Serial.println("Pretty printed JSON data:");
+        String jsonStr;
+        json.toString(jsonStr, true);
+        Serial.println(jsonStr);
+        Serial.println();
+        Serial.println("Iterate JSON data:");
+        Serial.println();
+        size_t len = json.iteratorBegin();
+        String key, value = "";
+        int type = 0;
+        for (size_t i = 0; i < len; i++)
+        {
+          json.iteratorGet(i, type, key, value);
+          Serial.print(i);
+          Serial.print(", ");
+          Serial.print("Type: ");
+          Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
+          if (type == FirebaseJson::JSON_OBJECT)
+          {
+            Serial.print(", Key: ");
+            Serial.print(key);
+          }
+          Serial.print(", Value: ");
+          Serial.println(value);
+
+          if (stream.dataPath == "/timer/timer1") {
+            if (key == "action") {
+              timer1action = value;
+              Serial.println(timer1action);
+            }
+            if (key == "timer") {
+              timer1timer = value;
+            }
+            if (key == "week1") {
+              timer1week1 = value;
+            }
+            if (key == "week2") {
+              timer1week2 = value;
+            }
+            if (key == "week3") {
+              timer1week3 = value;
+            }
+            if (key == "week4") {
+              timer1week4 = value;
+            }
+            if (key == "week5") {
+              timer1week5 = value;
+            }
+            if (key == "week6") {
+              timer1week6 = value;
+            }
+            if (key == "week7") {
+              timer1week7 = value;
+            }
+          }
+          if (stream.dataPath == "/timer/timer2") {
+            if (key == "action") {
+              timer2action = value;
+            }
+            if (key == "timer") {
+              timer2timer = value;
+            }
+            if (key == "week1") {
+              timer2week1 = value;
+            }
+            if (key == "week2") {
+              timer2week2 = value;
+            }
+            if (key == "week3") {
+              timer2week3 = value;
+            }
+            if (key == "week4") {
+              timer2week4 = value;
+            }
+            if (key == "week5") {
+              timer2week5 = value;
+            }
+            if (key == "week6") {
+              timer2week6 = value;
+            }
+            if (key == "week7") {
+              timer2week7 = value;
+            }
+          }
+          if (stream.dataPath == "/timer/timer3") {
+            if (key == "action") {
+              timer3action = value;
+            }
+            if (key == "timer") {
+              timer3timer = value;
+            }
+            if (key == "week1") {
+              timer3week1 = value;
+            }
+            if (key == "week2") {
+              timer3week2 = value;
+            }
+            if (key == "week3") {
+              timer3week3 = value;
+            }
+            if (key == "week4") {
+              timer3week4 = value;
+            }
+            if (key == "week5") {
+              timer3week5 = value;
+            }
+            if (key == "week6") {
+              timer3week6 = value;
+            }
+            if (key == "week7") {
+              timer3week7 = value;
+            }
+          }
+          if (stream.dataPath == "/timer/timer4") {
+            if (key == "action") {
+              timer4action = value;
+            }
+            if (key == "timer") {
+              timer4timer = value;
+            }
+            if (key == "week1") {
+              timer4week1 = value;
+            }
+            if (key == "week2") {
+              timer4week2 = value;
+            }
+            if (key == "week3") {
+              timer4week3 = value;
+            }
+            if (key == "week4") {
+              timer4week4 = value;
+            }
+            if (key == "week5") {
+              timer4week5 = value;
+            }
+            if (key == "week6") {
+              timer4week6 = value;
+            }
+            if (key == "week7") {
+              timer4week7 = value;
+            }
+          }
+        }
+        json.iteratorEnd();
+      }
     }
+    Serial.println();
   }
-
-  Serial.println();
-
 }
-
 void streamTimeoutCallback(bool timeout)
 {
   if (timeout)
@@ -575,7 +757,7 @@ void setup()
     Firebase.setString(firebaseData2, userpath + "/name", device_name);
   }
 
- if (!Firebase.beginMultiPathStream(firebaseData1, parentPath, childPath, childPathSize))
+  if (!Firebase.beginMultiPathStream(firebaseData1, parentPath, childPath, childPathSize))
   {
     Serial.println("------------------------------------");
     Serial.println("Can't begin stream connection...");
@@ -657,15 +839,54 @@ void dataNTP() {
   Serial.println ();
 
 
-  if ( devicetimer == horario) {
-    if (deviceweek1 || deviceweek2 || deviceweek3 || deviceweek4 || deviceweek5 || deviceweek6 || deviceweek7 == diadasemana ) {
-      if (devicestatus == "ligado") {
+  if ( timer1timer == horario) {
+    if (timer1week1 == diadasemana || timer1week2 == diadasemana || timer1week3 == diadasemana || timer1week3 == diadasemana || timer1week4 == diadasemana || timer1week5 == diadasemana || timer1week6 == diadasemana || timer1week7 == diadasemana) {
+      if (timer1action == "ligar") {
+        devicestatus = "ligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "ligado");
+      }
+      else if (timer1action == "desligar") {
         devicestatus = "desligado";
         Firebase.setString(firebaseData2, userpath + "/status", "desligado");
       }
-      else if (devicestatus == "desligado") {
+    }
+  }
+
+  if ( timer2timer == horario) {
+    if (timer2week1 == diadasemana || timer2week2 == diadasemana || timer2week3 == diadasemana || timer2week3 == diadasemana || timer2week4 == diadasemana || timer2week5 == diadasemana || timer2week6 == diadasemana || timer2week7 == diadasemana) {
+      if (timer2action == "ligar") {
         devicestatus = "ligado";
         Firebase.setString(firebaseData2, userpath + "/status", "ligado");
+      }
+      else if (timer2action == "desligar") {
+        devicestatus = "desligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "desligado");
+      }
+    }
+  }
+
+  if ( timer3timer == horario) {
+    if (timer3week1 == diadasemana || timer3week2 == diadasemana || timer3week3 == diadasemana || timer3week3 == diadasemana || timer3week4 == diadasemana || timer3week5 == diadasemana || timer3week6 == diadasemana || timer3week7 == diadasemana) {
+      if (timer3action == "ligar") {
+        devicestatus = "ligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "ligado");
+      }
+      else if (timer3action == "desligar") {
+        devicestatus = "desligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "desligado");
+      }
+    }
+  }
+
+  if ( timer4timer == horario) {
+    if (timer4week1 == diadasemana || timer4week2 == diadasemana || timer4week3 == diadasemana || timer4week3 == diadasemana || timer4week4 == diadasemana || timer4week5 == diadasemana || timer4week6 == diadasemana || timer4week7 == diadasemana) {
+      if (timer4action == "ligar") {
+        devicestatus = "ligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "ligado");
+      }
+      else if (timer4action == "desligar") {
+        devicestatus = "desligado";
+        Firebase.setString(firebaseData2, userpath + "/status", "desligado");
       }
     }
   }
