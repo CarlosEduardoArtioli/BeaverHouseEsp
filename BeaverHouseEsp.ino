@@ -163,7 +163,43 @@ int pos = 0;
 //Botão
 #define botao 14
 
-FirebaseData firebaseData;
+FirebaseData firebaseData1;
+FirebaseData firebaseData2;
+
+String parentPath = "/users/caduartioli@gmail:com/devices/24:62:AB:D7:C9:BC";
+String childPath[5] = {"/timer/timer1", "/timer/timer2", "/timer/timer3", "/timer/timer4", "/status"};
+size_t childPathSize = 5;
+
+void printResult(FirebaseData &data);
+
+void streamCallback(MultiPathStreamData stream)
+{
+  Serial.println();
+  Serial.println("Stream Data1 available...");
+
+  size_t numChild = sizeof(childPath) / sizeof(childPath[0]);
+
+  for (size_t i = 0; i < numChild; i++)
+  {
+    if (stream.get(childPath[i]))
+    {
+      Serial.println("path: " + stream.dataPath + ", type: " + stream.type + ", value: " + stream.value);
+    }
+  }
+
+  Serial.println();
+
+}
+
+void streamTimeoutCallback(bool timeout)
+{
+  if (timeout)
+  {
+    Serial.println();
+    Serial.println("Stream timeout, resume streaming...");
+    Serial.println();
+  }
+}
 
 long previousMillisLoop = 0;
 
@@ -475,76 +511,80 @@ void setup()
   //Trocando "." por ":" no caminho do usuário para não ter incopatibilidade
   userpath.replace(".", ":");
 
-  Serial.println(Firebase.getString(firebaseData, userpath + "/name"));
+  Serial.println(Firebase.getString(firebaseData2, userpath + "/name"));
 
   //IF para verificar se o nome existe ou não
-  if ((Firebase.getString(firebaseData, userpath + "/name")) == 0) {
+  if ((Firebase.getString(firebaseData2, userpath + "/name")) == 0) {
     //Caso não exista, "gera" a estrutura os dados no banco passados pelo usuário na configuração
-    Firebase.setString(firebaseData, userpath + "/icon", "Hardware");
-    Firebase.setString(firebaseData, userpath + "/mac", mac);
-    Firebase.setString(firebaseData, userpath + "/iconRoom", "Casa");
-    Firebase.setString(firebaseData, userpath + "/ap", "BeaverHouse" + chipID);
-    Firebase.setString(firebaseData, userpath + "/name", device_name);
-    Firebase.setString(firebaseData, userpath + "/room", "Nenhum");
-    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    Firebase.setString(firebaseData2, userpath + "/icon", "Hardware");
+    Firebase.setString(firebaseData2, userpath + "/mac", mac);
+    Firebase.setString(firebaseData2, userpath + "/iconRoom", "Casa");
+    Firebase.setString(firebaseData2, userpath + "/ap", "BeaverHouse" + chipID);
+    Firebase.setString(firebaseData2, userpath + "/name", device_name);
+    Firebase.setString(firebaseData2, userpath + "/room", "Nenhum");
+    Firebase.setString(firebaseData2, userpath + "/status", "desligado");
 
-    Firebase.setString(firebaseData, userpath + "/timer/timer1/timer", "");
-    Firebase.setBool(firebaseData, userpath + "/timer/timer1/show", false);
-    Firebase.setString(firebaseData, userpath + "/timer/timer1/action", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week1", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week2", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week3", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week4", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week5", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1/week6", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer1//week7", "");
+    Firebase.setString(firebaseData2, userpath + "/timer/timer1/timer", "");
+    Firebase.setBool(firebaseData2, userpath + "/timer/timer1/show", false);
+    Firebase.setString(firebaseData2, userpath + "/timer/timer1/action", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week1", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week2", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week3", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week4", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week5", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1/week6", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer1//week7", "");
 
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/timer", "");
-    Firebase.setBool(firebaseData, userpath + "/timer/timer2/show", false);
-    Firebase.setString(firebaseData, userpath + "/timer/timer2/action", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week1", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week2", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week3", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week4", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week5", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2/week6", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer2//week7", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/timer", "");
+    Firebase.setBool(firebaseData2, userpath + "/timer/timer2/show", false);
+    Firebase.setString(firebaseData2, userpath + "/timer/timer2/action", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week1", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week2", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week3", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week4", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week5", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2/week6", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer2//week7", "");
 
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/timer", "");
-    Firebase.setBool(firebaseData, userpath + "/timer/timer3/show", false);
-    Firebase.setString(firebaseData, userpath + "/timer/timer3/action", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week1", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week2", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week3", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week4", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week5", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3/week6", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer3//week7", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/timer", "");
+    Firebase.setBool(firebaseData2, userpath + "/timer/timer3/show", false);
+    Firebase.setString(firebaseData2, userpath + "/timer/timer3/action", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week1", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week2", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week3", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week4", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week5", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3/week6", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer3//week7", "");
 
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/timer", "");
-    Firebase.setBool(firebaseData, userpath + "/timer/timer4/show", false);
-    Firebase.setString(firebaseData, userpath + "/timer/timer4/action", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week1", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week2", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week3", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week4", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week5", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4/week6", "");
-    Firebase.setString(firebaseData, userpath + "/timer//timer4//week7", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/timer", "");
+    Firebase.setBool(firebaseData2, userpath + "/timer/timer4/show", false);
+    Firebase.setString(firebaseData2, userpath + "/timer/timer4/action", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week1", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week2", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week3", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week4", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week5", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4/week6", "");
+    Firebase.setString(firebaseData2, userpath + "/timer//timer4//week7", "");
   }
 
   else {
     //Caso exista, apenas troca o status do dispositivo para "desligado"
-    Firebase.setString(firebaseData, userpath + "/status", "desligado");
-    Firebase.setString(firebaseData, userpath + "/name", device_name);
+    Firebase.setString(firebaseData2, userpath + "/status", "desligado");
+    Firebase.setString(firebaseData2, userpath + "/name", device_name);
   }
 
-  if (!Firebase.beginStream(firebaseData, userpath))
+ if (!Firebase.beginMultiPathStream(firebaseData1, parentPath, childPath, childPathSize))
   {
-    Serial.println(firebaseData.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println("Can't begin stream connection...");
+    Serial.println("REASON: " + firebaseData1.errorReason());
+    Serial.println("------------------------------------");
+    Serial.println();
   }
 
-  verificaDados();
+  Firebase.setMultiPathStreamCallback(firebaseData1, streamCallback, streamTimeoutCallback);
 
   setupNTP();
 
@@ -553,8 +593,6 @@ void setup()
 
 void loop()
 {
-
-  verificaDados();
 
   unsigned long currentMillisLoop = millis();
 
@@ -570,110 +608,6 @@ void loop()
   deviceStatus();
 
   estadoBotao();
-}
-
-void verificaDados() {
-
-  if (!Firebase.readStream(firebaseData))
-  {
-    Serial.println(firebaseData.errorReason());
-  }
-
-  if (firebaseData.streamTimeout())
-  {
-    Serial.println("Stream timeout, resume streaming...");
-    Serial.println();
-  }
-
-  if (firebaseData.streamAvailable())
-  {
-
-    if (firebaseData.dataType() == "int")
-      Serial.println(firebaseData.intData());
-    else if (firebaseData.dataType() == "float")
-      Serial.println(firebaseData.floatData(), 5);
-    else if (firebaseData.dataType() == "double")
-      printf("%.9lf\n", firebaseData.doubleData());
-    else if (firebaseData.dataType() == "boolean")
-      Serial.println(firebaseData.boolData() == 1 ? "true" : "false");
-    else if (firebaseData.dataType() == "string") {
-      Serial.println(firebaseData.stringData());
-      Serial.println(firebaseData.dataPath());
-      if (firebaseData.dataPath() == "/status") {
-        devicestatus = firebaseData.stringData();
-      }
-      if (firebaseData.dataPath() == "/timer") {
-        devicetimer = firebaseData.stringData();
-      }
-    }
-    else if (firebaseData.dataType() == "json") {
-      FirebaseJson &json = firebaseData.jsonObject();
-      //Print all object data
-      Serial.println("Pretty printed JSON data:");
-      String jsonStr;
-      json.toString(jsonStr, true);
-      Serial.println(jsonStr);
-      Serial.println();
-      Serial.println("Iterate JSON data:");
-      Serial.println();
-      size_t len = json.iteratorBegin();
-      String key, value = "";
-      int type = 0;
-      for (size_t i = 0; i < len; i++)
-      {
-        json.iteratorGet(i, type, key, value);
-        Serial.print(i);
-        Serial.print(", ");
-        Serial.print("Type: ");
-        Serial.print(type == FirebaseJson::JSON_OBJECT ? "object" : "array");
-        if (type == FirebaseJson::JSON_OBJECT)
-        {
-          Serial.print(", Key: ");
-          Serial.print(key);
-        }
-        Serial.print(", Value: ");
-        Serial.println(value);
-
-        if (key == "status") {
-          devicestatus = value;
-          Serial.println("status do dispositivo: " + devicestatus);
-        }
-        if (key == "timer") {
-          devicetimer = value;
-          Serial.println("timer do dispositivo: " + devicetimer);
-        }
-        if (key == "week0") {
-          deviceweek1 = value;
-          Serial.println("Device Week: " + deviceweek1);
-        }
-        if (key == "week1") {
-          deviceweek2 = value;
-          Serial.println("Device Week: " + deviceweek2);
-        }
-        if (key == "week2") {
-          deviceweek3 = value;
-          Serial.println("Device Week: " + deviceweek3);
-        }
-        if (key == "week3") {
-          deviceweek4 = value;
-          Serial.println("Device Week: " + deviceweek4);
-        }
-        if (key == "week4") {
-          deviceweek5 = value;
-          Serial.println("Device Week: " + deviceweek5);
-        }
-        if (key == "week5") {
-          deviceweek6 = value;
-          Serial.println("Device Week: " + deviceweek6);
-        }
-        if (key == "week6") {
-          deviceweek7 = value;
-          Serial.println("Device Week: " + deviceweek7);
-        }
-      }
-      json.iteratorEnd();
-    }
-  }
 }
 
 void setupNTP() {
@@ -727,11 +661,11 @@ void dataNTP() {
     if (deviceweek1 || deviceweek2 || deviceweek3 || deviceweek4 || deviceweek5 || deviceweek6 || deviceweek7 == diadasemana ) {
       if (devicestatus == "ligado") {
         devicestatus = "desligado";
-        Firebase.setString(firebaseData, userpath + "/status", "desligado");
+        Firebase.setString(firebaseData2, userpath + "/status", "desligado");
       }
       else if (devicestatus == "desligado") {
         devicestatus = "ligado";
-        Firebase.setString(firebaseData, userpath + "/status", "ligado");
+        Firebase.setString(firebaseData2, userpath + "/status", "ligado");
       }
     }
   }
@@ -782,13 +716,13 @@ void estadoBotao() {
     digitalWrite(led, HIGH);
     myservo.write(180);
     devicestatus = "ligado";
-    Firebase.setString(firebaseData, userpath + "/status", "ligado");
+    Firebase.setString(firebaseData2, userpath + "/status", "ligado");
   }
   else if ( estado_botao == HIGH && devicestatus == "ligado" )
   {
     digitalWrite(led, LOW);
     myservo.write(0);
     devicestatus = "desligado";
-    Firebase.setString(firebaseData, userpath + "/status", "desligado");
+    Firebase.setString(firebaseData2, userpath + "/status", "desligado");
   }
 }
